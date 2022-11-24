@@ -3,7 +3,7 @@ from keras import layers
 from keras import activations
 from keras.optimizers import Adam
 
-discriminator, generator, gan = None
+discriminator, generator, gan = None, None, None
 
 def define_generator(latent_dim):
 	relu_alpha = 0.2
