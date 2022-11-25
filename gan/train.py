@@ -14,6 +14,8 @@ import FID
 import samples
 import models
 
+print(f"Dataset size: {dataloader.data_size:,}")
+
 max_epoch = 5000
 store_img_iter = 100
 display_stats_iter = 10
@@ -22,7 +24,7 @@ batch_size = 16
 latent_dim = 128
 
 def train(d_model, g_model, gan_model):
-	sample_vector = samples.generate_latent_vectors(latent_dim, 1)
+	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
 
 	n_batches = int(dataloader.data_size / batch_size)
 	for epoch in range(max_epoch):
@@ -40,11 +42,11 @@ def train(d_model, g_model, gan_model):
 
 			if (batch + 1) % display_stats_iter == 0:
 				print(f"{epoch}: {batch}/{n_batches}) d_loss = {d_loss}, accuracy = {acc}, g_loss = {g_loss}")
-				print(f"FID: {FID.calculate_fid(real_images, fake_images)}")
-				im = g_model.predict(sample_vector)[0]
+				print(f"FID: {FID.calculate_fid(fake_images)}")
+				im = g_model.predict(sample_vector)
 			#	im = np.moveaxis(im, -1, 0)
 			#	print(im.shape)
-				samples.save_image(im)
+				samples.save_plot(im)
 
 models.define_models(latent_dim)
 

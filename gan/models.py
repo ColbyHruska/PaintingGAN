@@ -21,7 +21,9 @@ def define_generator(latent_dim):
 	#gen = layers.BatchNormalization(momentum=momentum)(gen)
 	gen = layers.LeakyReLU(relu_alpha)(gen)
 
-	gen = layers.Conv2DTranspose(128, 5, 2, padding='same')(gen)
+	gen = layers.UpSampling2D()(gen)
+	gen = layers.Conv2D(128, 5, padding='same')(gen)
+	#gen = layers.Conv2DTranspose(128, 5, 2, padding='same')(gen)
 	#gen = layers.BatchNormalization(momentum=momentum)(gen)
 	gen = layers.LeakyReLU(relu_alpha)(gen)
 
@@ -88,7 +90,8 @@ def define_gan(g_model, d_model):
 
 	return model
 
-def define_models(latent_dim, in_shape):
+def define_models(latent_dim, in_shape=None):
+	global discriminator, generator, gan
 	discriminator = define_discriminator(in_shape) if in_shape != None else define_discriminator()
 	generator = define_generator(latent_dim)
 	gan = define_gan(generator, discriminator)

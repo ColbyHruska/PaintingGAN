@@ -3,6 +3,7 @@ from scipy.linalg import sqrtm
 from skimage.transform import resize
 from keras.applications import InceptionV3
 from keras.applications.inception_v3 import preprocess_input
+import os
 
 model = InceptionV3(include_top=False, pooling='avg', input_shape=(299,299,3))
 
@@ -13,30 +14,41 @@ def scale(imgs, shape):
 		img_list.append(new_img)
 	return np.asarray(img_list)
 
-
-def calculate_fid(images1, images2, preprocess=True):
+def find_distribution(arr, preprocess=True):
 	if preprocess:
-		images1 = images1.astype('float32')
-		images2 = images2.astype('float32')
+		arr = arr.astype('float32')
+		arr = scale(arr, (299,299,3))
+		arr = preprocess_input(arr)
 
-		images1 = scale(images1, (299,299,3))
-		images2 = scale(images2, (299,299,3))
+	distribution = model.predict(arr)
 
-		images1 = preprocess_input(images1)
-		images2 = preprocess_input(images2)
+	mu = distribution.mean(axis=0)
+	sigma = np.cov(distribution, rowvar=False)
+	return mu, sigma
 
-	distribution1 = model.predict(images1)
-	distribution2 = model.predict(images2)
-
-	mu1, mu2 = distribution1.mean(axis=0), distribution2.mean(axis=0)
-	sigma1, sigma2 = np.cov(distribution1), np.cov(distribution2)
-
+def frechet(mu1, sigma1, mu2, sigma2):
 	sum_square_diff = np.sum((mu1 - mu2) ** 2)
-	covmean = sqrtm(sigma1.dot(sigma2))
+	dot = sigma1.dot(sigma2)
+	covmean = sqrtm(dot)
 
 	if np.iscomplexobj(covmean):
 		covmean = covmean.real
 
-	fid = sum_square_diff + np.trace(sigma1 + sigma2 - 2 * covmean)
-	return fid
+	d = sum_square_diff + np.trace(sigma1 + sigma2 - 2 * covmean)
+	return d
 
+def calculate_fid(images1 : np.array, images2 : np.array, preprocess : bool = True):
+	mu1, sigma1, = find_distribution(images1, preprocess)
+	mu2, sigma2, = find_distribution(images2, preprocess)
+
+	return frechet(mu1, sigma1, mu2, sigma2)
+
+dir = os.path.dirname(__file__)
+data_mu = np.load(os.path.join(dir, 'mu.npy'))
+data_sigma = np.load(os.path.join(dir, 'sigma.npy'))
+
+def calculate_fid(images : np.array, preprocess : bool = True):
+	mu, sigma = find_distribution(images, preprocess)
+	
+	return frechet(data_mu, data_sigma, mu, sigma) 
+	
