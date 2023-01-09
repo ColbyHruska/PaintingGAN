@@ -2,13 +2,17 @@ from tensorflow import keras
 from keras import layers
 from keras import activations
 from keras.optimizers import Adam
+import keras.backend as K
 
 discriminator, generator, gan = None, None, None
+
+def w_loss(y_pred, y_true):
+	return K.mean(y_pred * y_true)
 
 def define_generator(latent_dim):
 	relu_alpha = 0.3
 	momentum = 0.9
-
+	
 	n_nodes = 1 ** 2
 	n_nodes *= 64
 	in_lat = keras.Input(shape=(latent_dim,))
