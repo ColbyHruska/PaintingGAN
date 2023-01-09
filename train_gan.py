@@ -22,6 +22,9 @@ batch_size = 64
 
 latent_dim = 100
 
+def save_model(model):
+	model.save(os.path.join(os.path.dirname(__file__), "/trained_models/gan"))
+
 def train(d_model, g_model, gan_model):
 	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
 
@@ -55,6 +58,7 @@ def train(d_model, g_model, gan_model):
 			#	print(im.shape)
 				#samples.save_plot(dataloader.get_batch(np.random.randint(low=0, high=dataloader.data_size - 16, size=1)[0], 16))
 				outputs.save_plot(im)
+				save_model(g_model)
 
 models.define_models(latent_dim)
 
