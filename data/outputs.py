@@ -1,6 +1,7 @@
 from PIL import Image
 from matplotlib import pyplot
 import os
+import numpy as np
 
 def save_image(arr):
 	with Image.fromarray((arr * 127.5 + 127.5).astype(np.uint8)) as im:
@@ -16,7 +17,7 @@ def save_plot(examples, n=4):
 		pyplot.subplot(n, n, 1 + i)
 		pyplot.axis('off')
 		pyplot.imshow(examples[i])
-	pyplot.savefig(file, dpi = 159)
+	pyplot.savefig(file, dpi = 130)
 	pyplot.close('all')
 	pyplot.close()
 
