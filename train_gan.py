@@ -4,28 +4,28 @@ from numpy import ones, zeros
 import tensorflow as tf
 import os
 from tensorflow import keras
-from keras import layers
-from keras import activations
+from keras import layers, activations
+from keras import models as M
 from keras.optimizers import Adam
 from PIL import Image
+import sys
 #Internal
 from data import dataloader, FID, outputs
 from gan import samples
-from gan import models64 as models
-
-print(f"Dataset size: {dataloader.data_size:,}")
+from gan import models
 
 max_epoch = 5000
 store_img_iter = 100
 display_stats_iter = 100
-batch_size = 128
+batch_size = 32
 
 n_critic = 5
 
-latent_dim = 100
+latent_dim = 128
 
+save_path = os.path.join(os.path.dirname(__file__), "trained_models/gan")
 def save_model(model):
-	model.save(os.path.join(os.path.dirname(__file__), "trained_models/gan"))
+	model.save(save_path)
 
 def train(d_model, g_model, gan_model):
 	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
@@ -64,10 +64,19 @@ def train(d_model, g_model, gan_model):
 				outputs.save_plot(im)
 				save_model(g_model)
 
-models.define_models(latent_dim)
+def main():
+	print(f"Dataset size: {dataloader.data_size:,}")
+	pretrained = None
+	if "resume" in sys.argv:
+		pretrained = M.load_model(save_path)
+		print("Resuming..")
+	
+	models.define_models(latent_dim, g_model=pretrained)
+	d_model = models.discriminator
+	g_model = models.generator
+	gan_model = models.gan
 
-d_model = models.discriminator
-g_model = models.generator
-gan_model = models.gan
+	train(d_model, g_model, gan_model)
 
-train(d_model, g_model, gan_model)
+if __name__ == "__main__":
+	main()
