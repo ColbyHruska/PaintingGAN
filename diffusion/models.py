@@ -17,7 +17,7 @@ def define_noise_predictor(input_shape=(None, 64,64,3)):
     hid = unet((input_shape[0], input_shape[1], input_shape[2] + 1), input_shape[2], output_activation=activations.linear)(hid)
 
     model = keras.Model([in_image, in_time], hid)
-    opt = Adam(learning_rate=0.0001)
+    opt = Adam(learning_rate=0.01)
     model.compile(opt, MSE)
 
     return model

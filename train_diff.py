@@ -8,9 +8,9 @@ from data import dataloader, FID, outputs
 from diffusion import models
 
 max_epoch = 5000
-store_img_iter = 100
-display_stats_iter = 200
-batch_size = 64
+store_img_iter = 300
+display_stats_iter = 400
+batch_size = 80
 
 image_shape = (64, 64, 3)
 
@@ -48,7 +48,7 @@ def loss_fn(real, generated):
     loss = tf.math.reduce_mean((real - generated) ** 2)
     return loss
 
-def ddpm(x_t, pred_noise, t):
+def ddpm(x_t, pred_noise, t, z=None):
     alpha_t = np.take(alpha, t)
     alpha_t_bar = np.take(alpha_bar, t)
 
@@ -56,45 +56,66 @@ def ddpm(x_t, pred_noise, t):
     mean = (1 / (alpha_t ** .5)) * (x_t - eps_coef * pred_noise)
 
     var = np.take(beta, t)
-    z = np.random.normal(size=x_t.shape)
+    if z is None:
+        z = np.random.normal(size=x_t.shape)
 
     return mean + (var ** .5) * z
 
-def generate_images(n_images, model):
+def generate_images(n_images, model, seed=None, normals = None):
+    nextseed = None
+    if seed != None:
+        nextseed = np.random.randint(1, 1e9)
+        np.random.seed(seed)
     images = []
-    for _ in range(n_images):
-        images.append(generate_image(model))
+    for i in range(n_images):
+        img = None
+        if normals is None:
+            img = generate_image(model)
+        else:
+            img = generate_image(model, normals[i])
+        images.append(img)
+    if nextseed != None:
+        np.random.seed(nextseed)
     return images
 
-def generate_image(model):
-    t = int(timesteps / 2)
-    img, _ = forward_noise(np.zeros(image_shape), t)
+def generate_image(model, normals = None):
+    t = timesteps - 1
+    img = np.random.normal(0, 1, image_shape)
 
     while t > 0:
-        img = ddpm(img, model.call([tf.convert_to_tensor(np.array([img])), tf.convert_to_tensor(np.array([t]))])[0], t)
+        normal = None if normals is None else normals[t - 1]
+        img = ddpm(img, model.call([tf.convert_to_tensor(np.array([img])), tf.convert_to_tensor(np.array([t]))])[0], t, normal)
         t -= 1
     return img
 
 def save_model(model):
-    model.save(os.path.join(os.path.dirname(__file__), "/trained_models/gan"))
+    model.save(os.path.join(os.path.dirname(__file__), "trained_models/diffusion"))
+
+#sample_normals = []
+#for i in range(16):
+#    normals = []
+#    for j in range(int(timesteps / 2)):
+#        normals.append(np.random.normal(size=image_shape))
+#    sample_normals.append(normals)
 
 def train(model):
     for epoch in range(max_epoch):
         n_batches = int(dataloader.data_size / batch_size)
         for batch in range(n_batches):
+            #print(f"{epoch}) {batch}/{n_batches}")
             X, Y = get_samples(batch_size)
 
             loss = model.train_on_batch(X, Y)
 
             if (batch + 1) % display_stats_iter == 0:
                 print(f"{epoch}: {batch}/{n_batches}) loss = {loss}")
-                images = generate_images(16, model)
-                images = np.array(images)
+                images = generate_images(4, model, seed=100)
+                images = np.clip(np.array(images), -1, 1)
                 print(f"FID: {FID.calculate_fid(images)}")
 			#	im = np.moveaxis(im, -1, 0)
 			#	print(im.shape)
 				#samples.save_plot(dataloader.get_batch(np.random.randint(low=0, high=dataloader.data_size - 16, size=1)[0], 16))
-                outputs.save_plot(images)
+                outputs.save_plot(images, 2)
                 save_model(model)
 
 model = models.define_noise_predictor(image_shape)

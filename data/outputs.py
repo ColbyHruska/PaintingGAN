@@ -3,9 +3,9 @@ from matplotlib import pyplot
 import os
 import numpy as np
 
-def save_image(arr):
+def save_image(arr, path=os.path.join(os.path.dirname(__file__), f"./out/")):
 	with Image.fromarray((arr * 127.5 + 127.5).astype(np.uint8)) as im:
-		dir = os.path.join(os.path.dirname(__file__), f"./out/")
+		dir = path
 		n = len(os.listdir(dir))
 		im.save(os.path.join(dir, f"{n}.png"))
 

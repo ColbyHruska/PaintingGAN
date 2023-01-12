@@ -25,7 +25,7 @@ n_critic = 5
 latent_dim = 100
 
 def save_model(model):
-	model.save(os.path.join(os.path.dirname(__file__), "/trained_models/gan"))
+	model.save(os.path.join(os.path.dirname(__file__), "trained_models/gan"))
 
 def train(d_model, g_model, gan_model):
 	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
