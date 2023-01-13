@@ -19,7 +19,7 @@ store_img_iter = 100
 display_stats_iter = 100
 batch_size = 32
 
-n_critic = 5
+n_critic = 4
 
 latent_dim = 128
 
@@ -34,7 +34,7 @@ def train(d_model, g_model, gan_model):
 	for epoch in range(max_epoch):
 		for batch in range(n_batches):
 			print(batch)
-			real_images = dataloader.get_batch(batch * batch_size, batch_size)
+			real_images = dataloader.get_random_batch(batch_size)
 			fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
 
 			d_loss = 0

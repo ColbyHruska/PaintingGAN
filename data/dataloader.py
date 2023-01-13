@@ -10,9 +10,19 @@ def find_data_size():
 
 data_size = find_data_size()
 
+def get_img(idx):
+	with Image.open(data_path + f"{idx}.png") as im:
+		return (np.array(im).astype('float32') - 127.5) / 127.5
+
 def get_batch(start : int, size : int):
 	batch = []
 	for i in range(start, start + size):
-		with Image.open(data_path + f"{i}.png") as im:
-			batch.append((np.array(im).astype('float32') - 127.5) / 127.5)
+		batch.append(get_img(i))
+	return np.array(batch)
+
+def get_random_batch(size : int):
+	batch = []
+	for i in range(size):
+		idx = np.random.randint(0, data_size)
+		batch.append(get_img(idx))
 	return np.array(batch)
