@@ -12,7 +12,7 @@ import training_sessions
 max_epoch = 5000
 store_img_iter = 300
 display_stats_iter = 400
-batch_size = 80
+batch_size = 160
 
 image_shape = (64, 64, 3)
 
@@ -125,11 +125,11 @@ def main():
     group = training_sessions.SessionGroup("D")
     sess = None
     if "resume" in sys.argv:
-        sess = group.TrainingSession(group.latest())
+        sess = group.new_sess(path=group.latest())
         model = sess.models["diff"]
     else:
         model = models.define_noise_predictor(image_shape)
-        sess = group.TrainingSession({"diff" : model})
+        sess = group.new_sess(models={"diff" : model})
     train(model, sess)
 
 if __name__ == "__main__":
