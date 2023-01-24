@@ -17,9 +17,9 @@ from gan import models
 max_epoch = 5000
 store_img_iter = 100
 display_stats_iter = 100
-batch_size = 32
+batch_size = 64
 
-n_critic = 4
+n_critic = 5
 
 latent_dim = 128
 
@@ -33,7 +33,7 @@ def train(d_model, g_model, gan_model):
 	n_batches = int(dataloader.data_size / batch_size)
 	for epoch in range(max_epoch):
 		for batch in range(n_batches):
-			print(batch)
+			#print(batch)
 			real_images = dataloader.get_random_batch(batch_size)
 			fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
 

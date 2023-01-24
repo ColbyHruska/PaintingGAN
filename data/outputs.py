@@ -9,9 +9,8 @@ def save_image(arr, path=os.path.join(os.path.dirname(__file__), f"./out/")):
 		n = len(os.listdir(dir))
 		im.save(os.path.join(dir, f"{n}.png"))
 
-def save_plot(examples, n=4):
+def save_plot(examples, n=4, path=os.path.join(os.path.dirname(__file__), f"./out/")):
 	examples = examples * 0.5 + 0.5
-	dir = os.path.join(os.path.dirname(__file__), f"./out/")
 	file = os.path.join(dir, f"{len(os.listdir(dir))}.png")
 	for i in range(n * n):
 		pyplot.subplot(n, n, 1 + i)

@@ -3,9 +3,11 @@ import os
 import numpy as np
 import tensorflow as tf
 import keras
+import sys
 
 from data import dataloader, FID, outputs
 from diffusion import models
+import training_sessions
 
 max_epoch = 5000
 store_img_iter = 300
@@ -98,7 +100,7 @@ def save_model(model):
 #        normals.append(np.random.normal(size=image_shape))
 #    sample_normals.append(normals)
 
-def train(model):
+def train(model, sess):
     for epoch in range(max_epoch):
         n_batches = int(dataloader.data_size / batch_size)
         for batch in range(n_batches):
@@ -115,8 +117,20 @@ def train(model):
 			#	im = np.moveaxis(im, -1, 0)
 			#	print(im.shape)
 				#samples.save_plot(dataloader.get_batch(np.random.randint(low=0, high=dataloader.data_size - 16, size=1)[0], 16))
-                outputs.save_plot(images, 2)
-                save_model(model)
+                sess.save_plot(images, 2)
+                sess.save()
 
-model = models.define_noise_predictor(image_shape)
-train(model)
+def main():
+    model = None
+    group = training_sessions.SessionGroup("D")
+    sess = None
+    if "resume" in sys.argv:
+        sess = group.TrainingSession(group.latest())
+        model = sess.models["diff"]
+    else:
+        model = models.define_noise_predictor(image_shape)
+        sess = group.TrainingSession({"diff" : model})
+    train(model, sess)
+
+if __name__ == "__main__":
+    main()
