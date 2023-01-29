@@ -11,7 +11,7 @@ def save_image(arr, path=os.path.join(os.path.dirname(__file__), f"./out/")):
 
 def save_plot(examples, n=4, path=os.path.join(os.path.dirname(__file__), f"./out/")):
 	examples = examples * 0.5 + 0.5
-	file = os.path.join(dir, f"{len(os.listdir(dir))}.png")
+	file = os.path.join(path, f"{len(os.listdir(path))}.png")
 	for i in range(n * n):
 		pyplot.subplot(n, n, 1 + i)
 		pyplot.axis('off')

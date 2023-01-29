@@ -21,46 +21,48 @@ class SessionGroup():
         folders = os.listdir(self.sessions_folder)
         return os.path.join(self.sessions_folder, nat_sort(folders)[-1])
 
-    def new_sess(self, path):
-        return self.TrainingSession(path=path, group=self)
+    def load_sess(self, path):
+        sess = self.TrainingSession()
+        sess.group = self
+        models = dict()
+        sess.model_dir = os.path.join(path, "models")
+        for model in os.listdir(sess.model_dir):
+            models.update({model : keras.models.load_model(os.path.join(sess.model_dir, model))})
+        sess.models = models
+        sess.path = path
+        sess.out_dir = os.path.join(path, "out")
+        sess.history_dir = os.path.join(sess.path, "history.npy")
+        sess.history = list(np.load(sess.history_dir))
+        return sess
     
     def new_sess(self, models):
-        return self.TrainingSession(models=models, group=self)
+        sess = self.TrainingSession()
+        date = datetime.datetime.now()
+        folder_name = f"{date.year}-{date.month}-{date.day}-{date.hour}-{date.minute}-{date.second}"
+        sess.path = os.path.join(self.sessions_folder, folder_name)
+        os.mkdir(sess.path)
+        sess.model_dir = os.path.join(sess.path, "models") 
+        os.mkdir(sess.model_dir)
+        for model in models:
+            os.mkdir(os.path.join(sess.model_dir, model))
+        sess.models = models
+        sess.out_dir = os.path.join(sess.path, "out")
+        os.mkdir(sess.out_dir)
+        sess.history_dir = os.path.join(sess.path, "history.npy")
+        sess.history = []
+        sess.group = self
+        return sess
 
     class TrainingSession():
-        def __init__(self, path, group) -> None:
-            self.group = group
-            models = dict()
-            self.model_dir = os.path.join(path, "models")
-            for model in os.listdir(self.model_dir):
-                models.update({model : keras.models.load_model(os.path.join(self.model_dir, model))})
-            self.models = models
-            self.path = path
-            self.out_dir = os.path.join(path, "out")
-            self.history_dir = os.path.join(self.path, "history.npy")
-            self.history = list(np.load(self.history_dir))
-
-        def __init__(self, models, group) -> None:
-            date = datetime.datetime.now()
-            folder_name = f"{date.year}-{date.month}-{date.day}-{date.hour}-{date.minute}-{date.second}"
-            self.path = os.path.join(group.sessions_folder, folder_name)
-            os.mkdir(self.path)
-            self.model_dir = os.path.join(self.path, "models") 
-            os.mkdir(self.model_dir)
-            for model in models:
-                os.mkdir(os.path.join(self.model_dir, model))
-            self.models = models
-            self.out_dir = os.path.join(self.path, "out")
-            os.mkdir(self.out_dir)
-            self.history_dir = os.path.join(self.path, "history.npy")
-            self.history = []
-            self.group = group
+        def __init__(self) -> None:
+            pass
 
         def save(self):
             for model in self.models:
                 self.models[model].save(os.path.join(self.model_dir, model))
-            open(self.history_dir).close()
-            np.save(np.array(self.history))
+            if os.path.exists(self.history_dir):
+                open(self.history_dir).close()
+            np.save(self.history_dir, np.array(self.history))
 
         def save_samples(self, samples):
             for sample in samples:
