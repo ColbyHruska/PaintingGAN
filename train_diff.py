@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import losses
 import sys
+import math
 
 from data import dataloader, FID, outputs
 from diffusion import models
@@ -18,7 +19,7 @@ store_img_iter = 300
 display_stats_iter = 400
 batch_size = 48
 norm_groups = 8
-learning_rate = 2e-4
+learning_rate = 1e-4
 
 img_size = 64
 n_channels = 3
@@ -30,9 +31,11 @@ widths = [first_conv_channels * mult for mult in channel_multiplier]
 has_attention = [False, False, True, True]
 num_res_blocks = 2
 
-timesteps = 200
-beta = np.linspace(0.0001, 0.02, timesteps)
+timesteps = 500
+b1, b2 = 0.0001, 0.01
+beta = np.cos(np.linspace(0, math.pi / 2, timesteps)) * (b2 - b1) + b1
 alpha = 1 - beta
+#print(alpha)
 alpha_bar = np.cumprod(alpha, 0)
 #alpha_bar = np.concatenate((np.array([1]), alpha_bar))
 sqrt_alpha_bar = np.sqrt(alpha_bar)
@@ -64,6 +67,7 @@ def loss_fn(real, generated):
 
 def ddpm(x_t, pred_noise, t, generator):
     alpha_t = np.take(alpha, t)
+    #print(alpha_t)
     alpha_t_bar = np.take(alpha_bar, t)
 
     eps_coef = (1 - alpha_t) / ((1 - alpha_t_bar) ** .5)
