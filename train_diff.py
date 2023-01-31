@@ -32,7 +32,7 @@ has_attention = [False, False, True, True]
 num_res_blocks = 2
 
 timesteps = 500
-b1, b2 = 0.0001, 0.01
+b1, b2 = 0.0001, 0.02
 beta = np.cos(np.linspace(0, math.pi / 2, timesteps)) * (b2 - b1) + b1
 alpha = 1 - beta
 #print(alpha)
@@ -42,7 +42,7 @@ sqrt_alpha_bar = np.sqrt(alpha_bar)
 one_minus_sqrt_alpha_bar = np.sqrt(1 - alpha_bar)
 
 def forward_noise(x, t):
-    noise = np.random.normal(size=x.shape)
+    noise = tf.random.normal(shape=x.shape)
 
     mean = sqrt_alpha_bar[t] * x
     noised_image = mean + one_minus_sqrt_alpha_bar[t] * noise
@@ -50,8 +50,8 @@ def forward_noise(x, t):
     return noised_image, noise
 
 def get_samples(n_samples):
-    idx = np.random.randint(0, dataloader.data_size, n_samples)
-    timestamps = np.random.randint(0, timesteps, n_samples)
+    idx = tf.random.uniform([n_samples], 0, dataloader.data_size, dtype=tf.dtypes.int32)
+    timestamps = tf.random.uniform([n_samples], 0, timesteps, dtype=tf.dtypes.int32)
     images = []
     noises = []
     for i in range(n_samples):
@@ -59,7 +59,7 @@ def get_samples(n_samples):
         images.append(image)
         noises.append(noise)
     
-    return (np.array(images), np.array(np.expand_dims(timestamps, -1))), np.array(noises)
+    return (tf.convert_to_tensor(images), np.array(tf.expand_dims(timestamps, -1))), tf.convert_to_tensor(noises)
 
 def loss_fn(real, generated):
     loss = tf.math.reduce_mean((real - generated) ** 2)
@@ -75,7 +75,7 @@ def ddpm(x_t, pred_noise, t, generator):
     
     var = np.take(beta, t)
     if t == 0:
-        z = np.zeros(x_t.shape)
+        z = tf.zeros(x_t.shape)
     else:
         z = generator.normal(size=x_t.shape)
 
@@ -132,7 +132,7 @@ def train(model, sess):
                 images = generate_images(4, model, sample_gen)
                 images = np.clip(np.array(images), -1, 1)
                 sess.save_plot(images, 2)
-                print(f"FID: {FID.calculate_fid(images)}")
+                #print(f"FID: {FID.calculate_fid(images)}")
 			#	im = np.moveaxis(im, -1, 0)
 			#	print(im.shape)
 				#samples.save_plot(dataloader.get_batch(np.random.randint(low=0, high=dataloader.data_size - 16, size=1)[0], 16))
