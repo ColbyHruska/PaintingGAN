@@ -21,7 +21,10 @@ class SessionGroup():
         folders = os.listdir(self.sessions_folder)
         return os.path.join(self.sessions_folder, nat_sort(folders)[-1])
 
-    def load_sess(self, path):
+    def load_sess(self, path, relative=False):
+        print(self.sessions_folder)
+        if relative:
+            path = os.path.join(str(self.sessions_folder), str(path))
         sess = self.TrainingSession()
         sess.group = self
         models = dict()

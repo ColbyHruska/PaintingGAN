@@ -1,11 +1,13 @@
 import numpy as np
+from scipy import stats
 from scipy.linalg import sqrtm
 from skimage.transform import resize
 from keras.applications import InceptionV3
 from keras.applications.inception_v3 import preprocess_input
 import os
+import math
 
-model = InceptionV3(include_top=False, pooling='avg', input_shape=(299,299,3))
+model = InceptionV3(weights="imagenet", include_top=False, pooling='avg', input_shape=(299,299,3))
 
 def scale(imgs, shape):
 	img_list = []
@@ -14,13 +16,17 @@ def scale(imgs, shape):
 		img_list.append(new_img)
 	return np.asarray(img_list)
 
-def find_distribution(arr, preprocess=True):
+def features(arr, preprocess=True):
+	arr = scale(arr, (299,299,3))
+	arr = arr.astype('float32')
 	if preprocess:
-		arr = arr.astype('float32')
-		arr = scale(arr, (299,299,3))
 		arr = preprocess_input(arr)
 
 	distribution = model.predict(arr)
+	return distribution
+
+def find_distribution(arr, preprocess=True):
+	distribution = features(arr, preprocess)
 
 	mu = distribution.mean(axis=0)
 	sigma = np.cov(distribution, rowvar=False)
@@ -51,4 +57,18 @@ def calculate_fid(images : np.array, preprocess : bool = True):
 	mu, sigma = find_distribution(images, preprocess)
 	
 	return frechet(data_mu, data_sigma, mu, sigma) 
-	
+
+def test():
+	return frechet(data_mu, data_sigma, data_mu, data_sigma) 
+
+inv = np.linalg.inv(data_sigma)
+def likelihood(img, preproccess=True):
+	feat = features(np.expand_dims(img, 0), preproccess)[0]
+
+	diff = feat - data_mu
+
+	exp = np.dot(inv, diff)
+	exp = np.dot(diff, exp)
+	l = -exp
+
+	return l
