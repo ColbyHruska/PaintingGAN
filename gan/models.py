@@ -4,6 +4,7 @@ from keras import activations
 from keras.optimizers import RMSprop
 import keras.backend as K
 from keras.constraints import Constraint
+from keras_unet.models import custom_unet as unet
 
 discriminator, generator, gan = None, None, None
 
@@ -26,28 +27,32 @@ def define_generator(latent_dim):
 	
 	img_size = 64
 	channels = 3
-	n_layers = 3
-	up = 3
+	n_layers = 5
+	up = 4
 	kernals = 64
 
 	start_size = img_size // (2 ** up)
 	n_nodes = start_size ** 2
 	n_nodes *= kernals
+	start_shape = (start_size, start_size, kernals)
 	in_lat = keras.Input(shape=(latent_dim,))
 	gen = layers.Dense(n_nodes)(in_lat)
-
-	gen = layers.Reshape((start_size, start_size, kernals))(gen)
-
+	gen = layers.Reshape(start_shape)(gen)
+	
+	tran = 3
 	for _ in range(n_layers):
 		#gen = layers.BatchNormalization(momentum=momentum)(gen)
 		if up > 0:
 			gen = layers.UpSampling2D()(gen)
 			up -= 1
-		gen = layers.Conv2DTranspose(kernals, 4, padding='same')(gen)
-		#gen = layers.Conv2D(kernals, 5, 1, padding='same')(gen)
-		gen = layers.LeakyReLU(relu_alpha)(gen)
+		if tran > 0:
+			gen = layers.Conv2DTranspose(kernals, 5, padding='same')(gen)
+			tran -= 1
+		else:
+			gen = layers.Conv2D(kernals, 5, padding='same')(gen)
+		gen = layers.LeakyReLU(alpha=relu_alpha)(gen)
 
-	out = layers.Conv2D(channels, 4, padding='same')(gen)
+	out = layers.Conv2D(channels, 5, padding='same')(gen)
 	out = layers.Activation(activations.tanh)(out)
 
 	model = keras.Model([in_lat], out)
@@ -59,7 +64,7 @@ def define_discriminator(in_shape=(64,64,3)):
 	momentum = 0.9
 	const = ClipConstraint(0.01)
 	
-	n_layers = 2
+	n_layers = 4
 	kernals = 64
 
 	in_image = layers.Input(shape=in_shape)
@@ -92,12 +97,15 @@ def define_gan(g_model, d_model):
 
 	return model
 
-def define_models(latent_dim, in_shape=None, g_model=None):
-	global discriminator, generator, gan
+def define_models(latent_dim, in_shape=None,):
 	discriminator = define_discriminator(in_shape) if in_shape != None else define_discriminator()
-	if g_model == None:
-		generator = define_generator(latent_dim)
-	else:
-		generator = g_model
-	gan = define_gan(generator, discriminator)
+	generator = define_generator(latent_dim)
+	return load_models(latent_dim=latent_dim, in_shape=in_shape, g_model=generator, d_model=discriminator)	
+
+def load_models(latent_dim, in_shape, g_model, d_model):
+	global discriminator, generator, gan
+
+	generator = g_model
+	discriminator = d_model
+	gan = define_gan(g_model, d_model)
 	return (discriminator, generator, gan)
