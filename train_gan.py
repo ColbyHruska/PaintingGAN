@@ -1,5 +1,6 @@
 #External
 import numpy as np
+import gc
 from numpy import ones, zeros
 import tensorflow as tf
 import os
@@ -7,8 +8,10 @@ from tensorflow import keras
 from keras import layers, activations
 from keras import models as M
 from keras.optimizers import Adam
+from keras.utils.generic_utils import get_custom_objects
 from PIL import Image
 import sys
+import random
 #Internal
 from data import dataloader, FID, outputs
 from gan import samples
@@ -18,15 +21,25 @@ import training_sessions
 max_epoch = 5000
 store_img_iter = 100
 display_stats_iter = 100
-batch_size = 32
+batch_size = 64
 
-n_critic = 5
+n_critic = 4
 
 latent_dim = 128
 
 save_path = os.path.join(os.path.dirname(__file__), "trained_models/gan")
 def save_model(model):
 	model.save(save_path)
+
+def mix(x, y, idx):
+	concat = np.concatenate((x, y), axis=0)
+	n = concat.shape[0]
+	out = np.copy(concat)
+	for i in range(n):
+		j = idx[i]
+		out[i] = concat[j].copy()
+	del concat
+	return out
 
 def train(d_model, g_model, gan_model, sess):
 	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
@@ -35,25 +48,25 @@ def train(d_model, g_model, gan_model, sess):
 	for epoch in range(max_epoch):
 		for batch in range(n_batches):
 			#print(batch)
-			real_images = dataloader.get_random_batch(batch_size)
-			fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
-
-			d_loss = 0
-
-			for _ in range(n_critic):
-				X = real_images
-				Y = ones((batch_size,1)) * -1
-				d_loss += d_model.train_on_batch(X, Y)
-
-				X = fake_images
-				Y = ones((batch_size,1))
-				d_loss += d_model.train_on_batch(X, Y)
-
-			d_loss /= n_critic * 2
 
 			X = samples.generate_latent_vectors(latent_dim, batch_size * 2)
 			Y = ones((batch_size * 2, 1)) * -1
 			g_loss = gan_model.train_on_batch(X, Y)
+
+			d_loss = 0
+
+			for _ in range(n_critic):
+				real_images = dataloader.get_random_batch(batch_size)
+				fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
+
+				idx = list(range(batch_size * 2))
+				random.shuffle(idx)
+				X = mix(real_images, fake_images, idx)
+				Y = mix(-ones((batch_size, 1)), ones((batch_size, 1)), idx)
+
+				d_loss += d_model.train_on_batch(X, Y)
+
+			d_loss /= n_critic
 
 			if (batch + 1) % display_stats_iter == 0:
 				print(f"{epoch}: {batch}/{n_batches}) d_loss = {d_loss}, g_loss = {g_loss}, god: {g_loss / d_loss}")
@@ -61,6 +74,7 @@ def train(d_model, g_model, gan_model, sess):
 				im = g_model.predict(sample_vector)
 				sess.save_plot(im)
 				sess.save()
+		gc.collect()
 
 def main():
 	print(f"Dataset size: {dataloader.data_size:,}")
@@ -68,6 +82,7 @@ def main():
 	pretrained = None
 	sess = None
 	if "resume" in sys.argv:
+		get_custom_objects().update({"w_loss" : models.w_loss})
 		sess = group.load_sess(group.latest())
 		pre_g = sess.models["generator"]
 		pre_d = sess.models["discriminator"]

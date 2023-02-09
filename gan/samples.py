@@ -13,4 +13,4 @@ def generate_latent_vectors(n_dim, n_samples):
 def generate_fake_samples(g_model, n_dim, n_samples):
 	x_input = generate_latent_vectors(n_dim, n_samples)
 
-	return g_model.predict([x_input])
+	return g_model.predict([x_input], verbose=0)
