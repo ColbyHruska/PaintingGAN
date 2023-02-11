@@ -115,7 +115,10 @@ def define_models(latent_dim, in_shape=None,):
 def load_models(latent_dim, in_shape, g_model, d_model):
 	global discriminator, generator, gan
 
+	opt = RMSprop(learning_rate=0.00005)
+
 	generator = g_model
 	discriminator = d_model
+	discriminator.compile(loss=w_loss, optimizer=opt)
 	gan = define_gan(g_model, d_model)
 	return (discriminator, generator, gan)

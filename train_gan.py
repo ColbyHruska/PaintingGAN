@@ -21,7 +21,7 @@ import training_sessions
 max_epoch = 5000
 store_img_iter = 100
 display_stats_iter = 100
-batch_size = 64
+batch_size = 32
 
 n_critic = 4
 
@@ -59,10 +59,8 @@ def train(d_model, g_model, gan_model, sess):
 				real_images = dataloader.get_random_batch(batch_size)
 				fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
 
-				idx = list(range(batch_size * 2))
-				random.shuffle(idx)
-				X = mix(real_images, fake_images, idx)
-				Y = mix(-ones((batch_size, 1)), ones((batch_size, 1)), idx)
+				X = np.concatenate((real_images, fake_images))
+				Y = np.concatenate((-ones((batch_size, 1)), ones((batch_size, 1))))
 
 				d_loss += d_model.train_on_batch(X, Y)
 
