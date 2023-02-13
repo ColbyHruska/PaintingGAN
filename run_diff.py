@@ -1,4 +1,5 @@
 import train_diff
+from train_diff import alpha, alpha_bar, sqrt_alpha_bar, one_minus_sqrt_alpha_bar, beta
 import os
 import tensorflow as tf
 from data import outputs
@@ -21,14 +22,12 @@ batch_size = 128
 rem = n_images
 while rem > 0:
     n = min(rem, batch_size)
-#    imgs = np.array(train_diff.generate_images(n, model, gen))
-    imgs = np.random.uniform(0, 1, (n, 64, 64, 3))
-#    imgs = dataloader.get_random_batch(n) 
+    imgs = np.array(train_diff.generate_images(n, model, gen))
     for i in range(n):
         outputs.save_image(imgs[i], out_path)
     rem -= n
 
-count = 2000
+count = 0
 images = []
 files = os.listdir(out_path)
 

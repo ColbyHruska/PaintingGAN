@@ -6,8 +6,7 @@ def seed(seed):
 	np.random.seed(seed)
 
 def generate_latent_vectors(n_dim, n_samples):
-	x = np.random.randn(n_dim * n_samples)
-	x = x.reshape(n_samples, n_dim)
+	x = np.random.randn(n_samples, n_dim)
 	return x
 
 def generate_fake_samples(g_model, n_dim, n_samples):

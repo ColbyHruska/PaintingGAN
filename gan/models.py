@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from keras import layers
 from keras import activations
-from keras.optimizers import RMSprop, Adam
+from keras.optimizers import RMSprop, Adam, SGD
 import keras.backend as K
 from keras.constraints import Constraint
 from keras_unet.models import custom_unet as unet
@@ -115,10 +115,7 @@ def define_models(latent_dim, in_shape=None,):
 def load_models(latent_dim, in_shape, g_model, d_model):
 	global discriminator, generator, gan
 
-	opt = RMSprop(learning_rate=0.00005)
-
 	generator = g_model
 	discriminator = d_model
-	discriminator.compile(loss=w_loss, optimizer=opt)
 	gan = define_gan(g_model, d_model)
 	return (discriminator, generator, gan)

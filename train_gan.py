@@ -6,6 +6,7 @@ import tensorflow as tf
 import os
 from tensorflow import keras
 from keras import layers, activations
+from keras import backend as K
 from keras import models as M
 from keras.optimizers import Adam
 from keras.utils.generic_utils import get_custom_objects
@@ -50,21 +51,26 @@ def train(d_model, g_model, gan_model, sess):
 			#print(batch)
 
 			X = samples.generate_latent_vectors(latent_dim, batch_size * 2)
-			Y = ones((batch_size * 2, 1)) * -1
+			Y = -ones((batch_size * 2, 1))
 			g_loss = gan_model.train_on_batch(X, Y)
+			del X
+			del Y
 
 			d_loss = 0
 
+			Y = -ones((batch_size, 1))
 			for _ in range(n_critic):
-				real_images = dataloader.get_random_batch(batch_size)
-				fake_images = samples.generate_fake_samples(g_model, latent_dim, batch_size)
-
-				X = np.concatenate((real_images, fake_images))
-				Y = np.concatenate((-ones((batch_size, 1)), ones((batch_size, 1))))
-
+				X = dataloader.get_random_batch(batch_size)
 				d_loss += d_model.train_on_batch(X, Y)
+				del X
+				Y = -Y
 
-			d_loss /= n_critic
+				X = samples.generate_fake_samples(g_model, latent_dim, batch_size)
+				d_loss += d_model.train_on_batch(X, Y)
+				Y = -Y
+			del Y
+
+			d_loss /= n_critic * 2
 
 			if (batch + 1) % display_stats_iter == 0:
 				print(f"{epoch}: {batch}/{n_batches}) d_loss = {d_loss}, g_loss = {g_loss}, god: {g_loss / d_loss}")
@@ -73,6 +79,8 @@ def train(d_model, g_model, gan_model, sess):
 				sess.save_plot(im)
 				sess.save()
 		gc.collect()
+		K.clear_session()
+		
 
 def main():
 	print(f"Dataset size: {dataloader.data_size:,}")
