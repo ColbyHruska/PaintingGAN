@@ -5,7 +5,6 @@ from keras import activations
 from keras.optimizers import RMSprop, Adam, SGD
 import keras.backend as K
 from keras.constraints import Constraint
-from keras_unet.models import custom_unet as unet
 import random
 
 discriminator, generator, gan = None, None, None
@@ -24,17 +23,17 @@ class ClipConstraint(Constraint):
 		return {'clip_value': self.clip_value}
 
 def define_generator(latent_dim):
-	init = keras.initializers.RandomNormal(stddev=0.02, seed=random.randint(-100000, 100000))
+	init = keras.initializers.RandomNormal
 	
 	relu_alpha = 0.2
-	momentum = 0.9
+	momentum = 0.8
 	
 	img_size = 64
 	channels = 3
 	n_layers = 5
 	up = 5
 	kernals = 128
-	tran = 3
+	tran = 4
 
 	start_size = img_size // (2 ** up)
 	n_nodes = start_size ** 2
@@ -45,12 +44,12 @@ def define_generator(latent_dim):
 	gen = layers.Reshape(start_shape)(gen)
 	
 	for _ in range(n_layers):
-		#gen = layers.BatchNormalization(momentum=momentum)(gen)
+		gen = layers.BatchNormalization(momentum=momentum)(gen)
 		if tran > 0:
-			gen = layers.Conv2DTranspose(kernals, 8, 1, padding='same', kernel_initializer=init)(gen)
+			gen = layers.Conv2DTranspose(kernals, 8, 1, padding='same', kernel_initializer=init(stddev=0.02))(gen)
 			tran -= 1
 		else:
-			gen = layers.Conv2D(kernals, 8, padding='same', kernel_initializer=init)(gen)
+			gen = layers.Conv2D(kernals, 8, padding='same', kernel_initializer=init(stddev=0.02))(gen)
 		if up > 0:
 			gen = layers.UpSampling2D()(gen)
 			kernals /= 2
@@ -58,7 +57,7 @@ def define_generator(latent_dim):
 		#gen = layers.Activation(activations.swish)(gen)
 		gen = layers.LeakyReLU(alpha=relu_alpha)(gen)
 
-	out = layers.Conv2D(channels, 8, padding='same', kernel_initializer=init)(gen)
+	out = layers.Conv2D(channels, 8, padding='same', kernel_initializer=init(stddev=0.02))(gen)
 	out = layers.Activation(activations.tanh)(out)
 
 	model = keras.Model([in_lat], out)
@@ -66,24 +65,24 @@ def define_generator(latent_dim):
 	return model
 
 def define_discriminator(in_shape=(64,64,3)):
-	init = keras.initializers.RandomNormal(stddev=0.02, seed=random.randint(-100000, 100000))
+	init = keras.initializers.RandomNormal
 
 	relu_alpha = 0.2
-	momentum = 0.9
+	momentum = 0.8
 	const = ClipConstraint(0.01)
 	
-	n_layers = 3
-	kernals = 16
+	n_layers = 4
+	kernals = 32
 
 	in_image = layers.Input(shape=in_shape)
-	dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init)(in_image)
+	dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(in_image)
 
 	for _ in range(n_layers):
 		kernals *= 2
 		#dis = layers.Activation(activations.swish)(dis)
 		dis = layers.LeakyReLU(relu_alpha)(dis)
-		dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init)(dis)
-		#dis = layers.BatchNormalization(momentum=momentum)(dis)
+		dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(dis)
+		dis = layers.BatchNormalization(momentum=momentum)(dis)
 		dis = layers.Dropout(0.5)(dis)
 	#dis = layers.Activation(activations.swish)(dis)
 	out = layers.Flatten()(dis)

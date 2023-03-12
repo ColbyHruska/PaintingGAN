@@ -49,106 +49,6 @@ def forward_noise(x, t):
 
     return noised_image, noise
 
-def maximum(*arr):
-    x = arr[0]
-    for i in arr:
-        x = np.maximum(x, i)
-    return x
-
-def minimum(*arr):
-    x = arr[0]
-    for i in arr:
-        x = np.minimum(x, i)
-    return x
-
-ROOT3 = math.sqrt(3)
-def convert_colour(img):
-    r = img[:, :, 0]
-    g = img[:, :, 1]
-    b = img[:, :, 2]
-
-    M = maximum(r, g, b)
-    m = minimum(r, g, b)
-    delta = M - m
-
-    s = M + 1
-    s = 2 * delta / s
-    s = np.nan_to_num(s)
-
-    d = np.sqrt(np.square(g - b) * 3 + np.square(2 * r - g - b))
-
-    x = 2 * r - g - b / d
-    y = ROOT3 * (g - b) / d
-
-    x = np.nan_to_num(x) * s
-    y = np.nan_to_num(y) * s
-
-    x = np.expand_dims(x, -1)
-    y = np.expand_dims(y, -1)
-    z = np.expand_dims(M, -1)
-
-    return np.concatenate((x, y, z), axis=-1)
-
-def to_rgb(img):
-    img = np.array(img)
-
-    x = img[:, :, 0]
-    y = img[:, :, 1]
-    z = img[:, :, 2]
-
-    s = np.sqrt(np.square(x) + np.square(y))
-
-    m = -(s * (z + 1)) / 2 + z
-
-    up = y >= 0
-    down = np.logical_not(up)
-    slope = y/x
-    a1 = ((slope >= 0) & (slope < ROOT3))
-    a3 = ((slope >= -ROOT3) & (slope < 0))
-    a2 = (np.logical_not(a1 | a3))
-    a4 = down & a1
-    a5 = down & a2
-    a6 = down & a3
-    a1 = up & a1
-    a2 = up & a2
-    a3 = up & a3
-
-    img_shape = x.shape
-    r = np.zeros(img_shape)
-    g = np.zeros(img_shape)
-    b = np.zeros(img_shape)
-
-    xy = x/y
-
-    bi1 = 1 + xy * ROOT3
-    bi2 = 2 - bi1
-
-    r += a1 * z
-    r += a6 * z
-    r += a3 * m
-    r += a4 * m
-    r += a2 * (ROOT3 * (z - m) *  xy + z + m) / 2
-    r += a5 * (ROOT3 * (m - z) *  xy + z + m) / 2
-
-    g += a2 * z
-    g += a3 * z
-    g += a5 * m
-    g += a6 * m
-    g += a1 * ((2 * z - bi2 * m) / bi1)
-    g += a4 * ((2 * m - bi2 * z) / bi1)
-
-    b += a1 * m
-    b += a2 * m
-    b += a4 * z
-    b += a5 * z
-    b += a3 * ((2 * m - bi1 * z) / bi2)
-    b += a6 * ((2 * z - bi1 * m) / bi2)
-
-    r = np.expand_dims(r, -1)
-    g = np.expand_dims(g, -1)
-    b = np.expand_dims(b, -1)
-
-    return np.concatenate((r, g, b), axis=-1)
 def get_samples(n_samples):
     idx = tf.random.uniform([n_samples], 0, dataloader.data_size, dtype=tf.dtypes.int32)
     timestamps = tf.random.uniform([n_samples], 0, timesteps, dtype=tf.dtypes.int32)
@@ -177,7 +77,7 @@ def ddpm(x_t, pred_noise, t, generator):
     if t == 0:
         z = tf.zeros(x_t.shape)
     else:
-        z = generator.normal(size=x_t.shape)
+        z = generator.normal(shape=x_t.shape)
 
     return mean + (var ** .5) * z
 
@@ -197,7 +97,7 @@ def generate_images(n_images, model, gen):
         eps_coef = (1 - alpha_t) / ((1 - alpha_t_bar) ** .5)
         mean = (1 / (alpha_t ** .5)) * (images - eps_coef * noise)
     
-        var = np.take(beta, t)
+        var = 1 - (alpha_t_bar[max(t - 1, 0)]) / (1 - alpha_t_bar)
 
         if t == 0:
             z = tf.zeros(images.shape)

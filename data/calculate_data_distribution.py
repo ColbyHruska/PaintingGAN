@@ -4,11 +4,13 @@ import os
 import features
 import dataloader
 
-feature_arr = features.batch_features(dataloader.get_random_batch(500), False)
-rem = 0
+batch_size = 500
+feature_arr = features.batch_features(dataloader.get_random_batch(batch_size), False)
+rem = 10000
+rem -= batch_size
 i = 0
 while rem > 0:
-    n = min(rem, 500)
+    n = min(rem, batch_size)
     feature_arr = np.concatenate((feature_arr, features.batch_features(dataloader.get_random_batch(n), False)), axis=0)
     i += n
     rem -= n

@@ -21,7 +21,7 @@ sess = group.load_sess(group.latest())
 n_dim = 128
 model : Model = sess.models["generator"]
 
-n = 2000
+n = 10000
 for i in range(n):
     vector = samples.generate_latent_vectors(n_dim, 1)
     img = model.predict(vector)[0]

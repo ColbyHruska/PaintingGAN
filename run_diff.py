@@ -12,22 +12,23 @@ from data import dataloader
 from data import features
 group = training_sessions.SessionGroup("D")
 sess = group.load_sess("2023-1-30-15-50-12", True)
-model = sess.models["diff"]
+#model = sess.models["diff"]
 
 out_path = os.path.join(os.path.dirname(__file__), "data/generated")
-n_images = 2000
-seed = 65478
+n_images = 10000
+seed = 654781
 gen = tf.random.Generator.from_seed(seed)
-batch_size = 128
+batch_size = 256
 rem = n_images
 while rem > 0:
     n = min(rem, batch_size)
-    imgs = np.array(train_diff.generate_images(n, model, gen))
+    #imgs = np.array(train_diff.generate_images(n, model, gen))
+    imgs = dataloader.get_random_batch(n)
     for i in range(n):
         outputs.save_image(imgs[i], out_path)
     rem -= n
 
-count = 0
+count = 10000
 images = []
 files = os.listdir(out_path)
 

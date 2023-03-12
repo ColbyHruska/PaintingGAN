@@ -13,6 +13,8 @@ from keras.utils.generic_utils import get_custom_objects
 from PIL import Image
 import sys
 import random
+from tensorflow.python.client import device_lib
+
 #Internal
 from data import dataloader, FID, outputs
 from gan import samples
@@ -46,10 +48,9 @@ def train(d_model, g_model, gan_model, sess):
 	sample_vector = samples.generate_latent_vectors(latent_dim, 16)
 
 	n_batches = int(dataloader.data_size / batch_size)
+	print(f"n_batches = {n_batches}")
 	for epoch in range(max_epoch):
 		for batch in range(n_batches):
-			#print(batch)
-
 			X = samples.generate_latent_vectors(latent_dim, batch_size * 2)
 			Y = -ones((batch_size * 2, 1))
 			g_loss = gan_model.train_on_batch(X, Y)
@@ -78,11 +79,12 @@ def train(d_model, g_model, gan_model, sess):
 				im = g_model.predict(sample_vector)
 				sess.save_plot(im)
 				sess.save()
-		gc.collect()
 		K.clear_session()
 		
 
 def main():
+	print(tf.config.list_physical_devices("GPU"))
+
 	print(f"Dataset size: {dataloader.data_size:,}")
 	group = training_sessions.SessionGroup("Gan")
 	pretrained = None
