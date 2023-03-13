@@ -19,16 +19,3 @@ def save_plot(examples, n=4, path=os.path.join(os.path.dirname(__file__), f"./ou
 	pyplot.savefig(file, dpi = 130)
 	pyplot.close('all')
 	pyplot.close()
-
-def save_graphs(batches, d_loss, g_loss, acc, fid):
-	batches = range(1, batches + 1)
-	pyplot.plot(batches, d_loss, 'r', label='Discriminator Loss')
-	pyplot.plot(batches, g_loss, 'g', label='Generator Loss')
-
-	pyplot.title('GAN Training')
-	pyplot.xlabel('Batches')
-	pyplot.ylabel('Loss')
-
-	
-	pyplot.plot(batches, g_loss, 'b', label='Accuracy')
-	pyplot.plot(batches, g_loss, '#000000', label='Accuracy')
