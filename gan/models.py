@@ -23,19 +23,19 @@ class ClipConstraint(Constraint):
 		return {'clip_value': self.clip_value}
 
 def define_generator(latent_dim):
-	init = keras.initializers.RandomNormal
+	init = keras.initializers.RandomNormal; stddev=0.02
 	
 	relu_alpha = 0.2
 	momentum = 0.8
 	
 	img_size = 64
 	channels = 3
-	n_layers = 5
+	n_layers = 4
 	up = 5
-	kernals = 128
-	tran = 4
+	kernals = 256
+	tran = 5
 
-	start_size = img_size // (2 ** up)
+	start_size = img_size // (2 ** (up - 1))
 	n_nodes = start_size ** 2
 	n_nodes *= kernals
 	start_shape = (start_size, start_size, kernals)
@@ -44,20 +44,19 @@ def define_generator(latent_dim):
 	gen = layers.Reshape(start_shape)(gen)
 	
 	for _ in range(n_layers):
-		gen = layers.BatchNormalization(momentum=momentum)(gen)
 		if tran > 0:
-			gen = layers.Conv2DTranspose(kernals, 8, 1, padding='same', kernel_initializer=init(stddev=0.02))(gen)
+			stride = 2 if up > 0 else 1 
+			gen = layers.Conv2DTranspose(kernals, 4, stride, padding='same', use_bias=False, kernel_initializer=init(stddev=stddev))(gen)
 			tran -= 1
 		else:
-			gen = layers.Conv2D(kernals, 8, padding='same', kernel_initializer=init(stddev=0.02))(gen)
-		if up > 0:
-			gen = layers.UpSampling2D()(gen)
-			kernals /= 2
-			up -= 1
-		#gen = layers.Activation(activations.swish)(gen)
+			gen = layers.Conv2D(kernals, 4, padding='same', kernel_initializer=init(stddev=stddev))(gen)
+			if up > 0:
+				gen = layers.UpSampling2D()(gen)
+		kernals /= 2		
+		up -= 1
 		gen = layers.LeakyReLU(alpha=relu_alpha)(gen)
 
-	out = layers.Conv2D(channels, 8, padding='same', kernel_initializer=init(stddev=0.02))(gen)
+	out = layers.Conv2D(channels, 4, padding='same', kernel_initializer=init(stddev=stddev))(gen)
 	out = layers.Activation(activations.tanh)(out)
 
 	model = keras.Model([in_lat], out)
@@ -72,24 +71,24 @@ def define_discriminator(in_shape=(64,64,3)):
 	const = ClipConstraint(0.01)
 	
 	n_layers = 4
-	kernals = 32
+	kernals = 64
 
 	in_image = layers.Input(shape=in_shape)
-	dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(in_image)
+	dis = layers.Conv2D(3, 4, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(in_image)
+	dis = layers.LeakyReLU(relu_alpha)(dis)
+	dis = layers.Conv2D(kernals, 4, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(dis)
 
 	for _ in range(n_layers):
 		kernals *= 2
-		#dis = layers.Activation(activations.swish)(dis)
 		dis = layers.LeakyReLU(relu_alpha)(dis)
-		dis = layers.Conv2D(kernals, 8, 2, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(dis)
-		dis = layers.BatchNormalization(momentum=momentum)(dis)
-		dis = layers.Dropout(0.5)(dis)
-	#dis = layers.Activation(activations.swish)(dis)
+		dis = layers.Conv2D(kernals, 4, 2, padding='same', kernel_constraint=const, kernel_initializer=init(stddev=0.02))(dis)
+		#dis = layers.BatchNormalizationV1()(dis)
+	dis = layers.LeakyReLU(relu_alpha)(dis)
 	out = layers.Flatten()(dis)
 	out = layers.Dense(1)(out)
 
 	model = keras.Model([in_image], out)
-	opt = RMSprop(learning_rate=0.00005)
+	opt = RMSprop(learning_rate=5e-5)
 	model.compile(loss=w_loss, optimizer=opt)
 	return model
 
@@ -101,7 +100,7 @@ def define_gan(g_model, d_model):
 	gan_output = d_model([gen_output])
 
 	model = keras.Model([gen_noise], gan_output)
-	opt = RMSprop(learning_rate=0.00005)
+	opt = RMSprop(learning_rate=5e-5)
 	model.compile(loss=w_loss, optimizer=opt)
 
 	return model

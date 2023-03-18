@@ -1,22 +1,13 @@
 #External
 import numpy as np
-import gc
-from numpy import ones, zeros
+from numpy import ones
 import tensorflow as tf
-import os
-from tensorflow import keras
-from keras import layers, activations
 from keras import backend as K
-from keras import models as M
-from keras.optimizers import Adam
 from keras.utils.generic_utils import get_custom_objects
-from PIL import Image
 import sys
-import random
-from tensorflow.python.client import device_lib
 
 #Internal
-from data import dataloader, FID, outputs
+from data import dataloader
 from gan import samples
 from gan import models
 import training_sessions
@@ -29,10 +20,6 @@ batch_size = 32
 n_critic = 4
 
 latent_dim = 128
-
-save_path = os.path.join(os.path.dirname(__file__), "trained_models/gan")
-def save_model(model):
-	model.save(save_path)
 
 def mix(x, y, idx):
 	concat = np.concatenate((x, y), axis=0)
@@ -74,13 +61,11 @@ def train(d_model, g_model, gan_model, sess):
 			d_loss /= n_critic * 2
 
 			if (batch + 1) % display_stats_iter == 0:
-				print(f"{epoch}: {batch}/{n_batches}) d_loss = {d_loss}, g_loss = {g_loss}, god: {g_loss / d_loss}")
-				#print(f"FID: {FID.calculate_fid(fake_images)}")
+				print(f"{epoch}: {batch}/{n_batches}) d_loss = {d_loss}, g_loss = {g_loss}")
 				im = g_model.predict(sample_vector)
 				sess.save_plot(im)
 				sess.save()
 		K.clear_session()
-		
 
 def main():
 	print(tf.config.list_physical_devices("GPU"))
